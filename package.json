@@ -1,0 +1,29 @@
+{
+  "name": "porcelain-overlay-studio",
+  "private": true,
+  "packageManager": "pnpm@9.9.0",
+  "description": "Image processing toolkit monorepo.",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "turbo run build build:browser --filter=!@jimp/docs",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "test": "turbo run test -- --watch=false",
+    "test:browser": "turbo run test:browser -- --watch=false",
+    "clean": "turbo run clean && rm -rf node_modules .turbo",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "generate-package": "turbo gen package",
+    "generate-plugin": "turbo gen plugin",
+    "check-updates": "ncu --packageFile '{,*/**/}package.json'"
+  },
+  "devDependencies": {
+    "@jimp/config-eslint": "workspace:*",
+    "@jimp/config-typescript": "workspace:*",
+    "@turbo/gen": "^2.1.1",
+    "npm-check-updates": "^17.1.1",
+    "prettier": "^3.3.3",
+    "turbo": "^2.1.1"
+  }
+}
