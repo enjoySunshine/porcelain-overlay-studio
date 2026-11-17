@@ -1,5 +1,5 @@
 import { JimpClass, JimpClassSchema } from "@jimp/types";
-import { limit255, scan } from "@jimp/utils";
+import { scan } from "@jimp/utils";
 import { z } from "zod";
 
 const BlitOptionsSchemaComplex = z.object({
@@ -92,6 +92,11 @@ export const methods = {
           a: src.bitmap.data[idx + 3] || 0,
         };
 
+        if (srcColor.a === 0) {
+          // A fully transparent source pixel leaves the destination untouched.
+          return;
+        }
+
         const dst = {
           r: image.bitmap.data[dstIdx] || 0,
           g: image.bitmap.data[dstIdx + 1] || 0,
@@ -99,13 +104,22 @@ export const methods = {
           a: image.bitmap.data[dstIdx + 3] || 0,
         };
 
-        image.bitmap.data[dstIdx] =
-          ((srcColor.a * (srcColor.r - dst.r) - dst.r + 255) >> 8) + dst.r;
-        image.bitmap.data[dstIdx + 1] =
-          ((srcColor.a * (srcColor.g - dst.g) - dst.g + 255) >> 8) + dst.g;
-        image.bitmap.data[dstIdx + 2] =
-          ((srcColor.a * (srcColor.b - dst.b) - dst.b + 255) >> 8) + dst.b;
-        image.bitmap.data[dstIdx + 3] = limit255(dst.a + srcColor.a);
+        // "Source over destination" compositing for straight (non-premultiplied)
+        // alpha. The source alpha is the blend weight: the destination keeps a
+        // weight of dstA * (1 - srcA). Both are kept on the 0-255 scale.
+        const dstWeight = (dst.a * (255 - srcColor.a)) / 255;
+        const outA = srcColor.a + dstWeight;
+
+        image.bitmap.data[dstIdx] = Math.round(
+          (srcColor.r * srcColor.a + dst.r * dstWeight) / outA,
+        );
+        image.bitmap.data[dstIdx + 1] = Math.round(
+          (srcColor.g * srcColor.a + dst.g * dstWeight) / outA,
+        );
+        image.bitmap.data[dstIdx + 2] = Math.round(
+          (srcColor.b * srcColor.a + dst.b * dstWeight) / outA,
+        );
+        image.bitmap.data[dstIdx + 3] = Math.floor(outA);
       }
     });
 

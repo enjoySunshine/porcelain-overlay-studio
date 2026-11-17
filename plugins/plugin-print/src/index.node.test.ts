@@ -279,4 +279,44 @@ describe("Write text over image", function () {
 
     expect(textImage).toMatchImageSnapshot();
   });
+
+  test("prints white text on a transparent image without gray fringes", async () => {
+    const font = await loadFont(fonts.SANS_32_WHITE);
+    const image = new Jimp({ width: 114, height: 60, color: 0x00000000 });
+
+    image.print({ font, x: 0, y: 0, text: "Hi" });
+
+    let sawSolidPixel = false;
+    let sawEdgePixel = false;
+
+    image.scan((_, __, idx) => {
+      const r = image.bitmap.data[idx]!;
+      const g = image.bitmap.data[idx + 1]!;
+      const b = image.bitmap.data[idx + 2]!;
+      const a = image.bitmap.data[idx + 3]!;
+
+      if (a === 0) {
+        // untouched background stays fully transparent
+        expect(r).toBe(0);
+        expect(g).toBe(0);
+        expect(b).toBe(0);
+        return;
+      }
+
+      // every covered pixel stays white; only the alpha carries the
+      // coverage (the font pages themselves only use 254/255 RGB)
+      expect(r).toBeGreaterThanOrEqual(254);
+      expect(g).toBeGreaterThanOrEqual(254);
+      expect(b).toBeGreaterThanOrEqual(254);
+
+      if (a === 255) {
+        sawSolidPixel = true;
+      } else {
+        sawEdgePixel = true;
+      }
+    });
+
+    expect(sawSolidPixel).toBe(true);
+    expect(sawEdgePixel).toBe(true);
+  });
 });

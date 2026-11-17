@@ -47,7 +47,10 @@ export const methods = {
       if (radius - curR <= 0.0) {
         image.bitmap.data[idx + 3] = 0;
       } else if (radius - curR < 1.0) {
-        image.bitmap.data[idx + 3] = 255 * (radius - curR);
+        // Anti-alias the edge by scaling the pixel's own alpha with the
+        // coverage, so a semi-transparent source stays semi-transparent.
+        image.bitmap.data[idx + 3] =
+          (image.bitmap.data[idx + 3] || 0) * (radius - curR);
       }
     });
 

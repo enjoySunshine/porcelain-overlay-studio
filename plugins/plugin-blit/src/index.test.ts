@@ -70,3 +70,65 @@ describe("Blit over image", function () {
     ).toMatchSnapshot();
   });
 });
+
+describe("Blit alpha compositing", function () {
+  test("keeps source color when blitting semi-transparent white over transparent", () => {
+    const src = new Jimp({ width: 2, height: 2, color: 0xffffff80 });
+    const target = new Jimp({ width: 4, height: 4, color: 0x00000000 });
+
+    target.blit({ src, x: 1, y: 1 });
+
+    expect(target.getPixelColor(1, 1)).toBe(0xffffff80);
+    expect(target.getPixelColor(2, 2)).toBe(0xffffff80);
+    // pixels not covered by the source stay fully transparent
+    expect(target.getPixelColor(0, 0)).toBe(0x00000000);
+    expect(target.getPixelColor(3, 3)).toBe(0x00000000);
+  });
+
+  test("blits semi-transparent white over opaque black", () => {
+    const src = new Jimp({ width: 1, height: 1, color: 0xffffff80 });
+    const target = new Jimp({ width: 1, height: 1, color: 0x000000ff });
+
+    target.blit({ src });
+
+    expect(target.getPixelColor(0, 0)).toBe(0x808080ff);
+  });
+
+  test("blits semi-transparent white over opaque blue", () => {
+    const src = new Jimp({ width: 1, height: 1, color: 0xffffff80 });
+    const target = new Jimp({ width: 1, height: 1, color: 0x0000ffff });
+
+    target.blit({ src });
+
+    expect(target.getPixelColor(0, 0)).toBe(0x8080ffff);
+  });
+
+  test("blits opaque red over transparent", () => {
+    const src = new Jimp({ width: 1, height: 1, color: 0xff0000ff });
+    const target = new Jimp({ width: 1, height: 1, color: 0x00000000 });
+
+    target.blit({ src });
+
+    expect(target.getPixelColor(0, 0)).toBe(0xff0000ff);
+  });
+
+  test("accumulates alpha with the over operator when blitting twice", () => {
+    const src = new Jimp({ width: 1, height: 1, color: 0xffffff80 });
+    const target = new Jimp({ width: 1, height: 1, color: 0x00000000 });
+
+    target.blit({ src });
+    expect(target.getPixelColor(0, 0)).toBe(0xffffff80);
+
+    target.blit({ src });
+    expect(target.getPixelColor(0, 0)).toBe(0xffffffbf);
+  });
+
+  test("leaves destination untouched by fully transparent source pixels", () => {
+    const src = new Jimp({ width: 1, height: 1, color: 0xffffff00 });
+    const target = new Jimp({ width: 1, height: 1, color: 0x12345678 });
+
+    target.blit({ src });
+
+    expect(target.getPixelColor(0, 0)).toBe(0x12345678);
+  });
+});
